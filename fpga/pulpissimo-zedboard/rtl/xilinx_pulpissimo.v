@@ -21,6 +21,30 @@
 //-----------------------------------------------------------------------------
 
 module xilinx_pulpissimo (
+   // Signals for the ARM side
+   inout wire DDR_addr,
+   inout wire DDR_ba,
+   inout wire DDR_cas_n,
+   inout wire DDR_ck_n,
+   inout wire DDR_ck_p,
+   inout wire DDR_cke,
+   inout wire DDR_cs_n,
+   inout wire DDR_dm,
+   inout wire DDR_dq,
+   inout wire DDR_dqs_n,
+   inout wire DDR_dqs_p,
+   inout wire DDR_odt,
+   inout wire DDR_ras_n,
+   inout wire DDR_reset_n,
+   inout wire DDR_we_n,
+   inout wire FIXED_IO_ddr_vrn,
+   inout wire FIXED_IO_ddr_vrp,
+   inout wire FIXED_IO_mio,
+   inout wire FIXED_IO_ps_clk,
+   inout wire FIXED_IO_ps_porb,
+   inout wire FIXED_IO_ps_srstb,
+
+   // Pulpissimo ports
    input  wire ref_clk_i,
 
    inout  wire pad_uart_rx,  //Mapped to uart_rx
@@ -71,11 +95,32 @@ module xilinx_pulpissimo (
   localparam CORE_TYPE = 0; // 0 for RISCY, 1 for IBEX RV32IMC (formerly ZERORISCY), 2 for IBEX RV32EC (formerly MICRORISCY)
   localparam USE_FPU   = 1;
   localparam USE_HWPE  = 0;
-
+  
   wire ref_clk_int;
   wire tck_int;
   wire rst_n;
   assign rst_n = ~pad_reset;
+
+  // Wires to datalynx
+  localparam NLYNX_COUNTER_WIDTH = 32;
+  localparam NLYNX_METRICS = 13;
+  localparam NLYNX_SECTION_SIZE = 10;
+
+  wire [NLYNX_COUNTER_WIDTH-1:0] instr_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] load_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] store_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] alu_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] mult_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] branch_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] branch_taken_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] fpu_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] jump_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] hwl_init_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] hwl_jump_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] inst_fetch_cnt;
+  wire [NLYNX_COUNTER_WIDTH-1:0] cycl_wasted_cnt;
+  wire [NLYNX_METRICS-1:0]       nlynx_overflow;
+  wire                           nlynx_eop;
 
   // Input clock buffer
   BUFG i_sysclk_bufg (
@@ -93,7 +138,10 @@ module xilinx_pulpissimo (
   pulpissimo #(
     .CORE_TYPE(CORE_TYPE),
     .USE_FPU(USE_FPU),
-    .USE_HWPE(USE_HWPE)
+    .USE_HWPE(USE_HWPE),
+    .NLYNX_METRICS(NLYNX_METRICS),
+    .NLYNX_COUNTER_WIDTH(NLYNX_COUNTER_WIDTH),
+    .NLYNX_SECTION_SIZE(NLYNX_SECTION_SIZE)
   ) i_pulpissimo (
     .pad_spim_sdio0(led4_o),      // GPIO0
     .pad_spim_sdio1(led5_o),      // GPIO1
@@ -134,7 +182,66 @@ module xilinx_pulpissimo (
     .pad_jtag_tms(pad_jtag_tms),
     .pad_jtag_trst(1'b1),
     .pad_xtal_in(ref_clk_int),
-    .pad_bootsel()
+    .pad_bootsel(),
+    
+    .instr_cnt_o        ( instr_cnt         ),
+    .load_cnt_o         ( load_cnt          ),
+    .store_cnt_o        ( store_cnt         ),
+    .alu_cnt_o          ( alu_cnt           ),
+    .mult_cnt_o         ( mult_cnt          ),
+    .branch_cnt_o       ( branch_cnt        ),
+    .branch_taken_cnt_o ( branch_taken_cnt  ),
+    .fpu_cnt_o          ( fpu_cnt           ),
+    .jump_cnt_o         ( jump_cnt          ),
+    .hwl_init_cnt_o     ( hwl_init_cnt      ),
+    .hwl_jump_cnt_o     ( hwl_jump_cnt      ),
+    .inst_fetch_cnt_o   ( inst_fetch_cnt    ),
+    .cycl_wasted_cnt_o  ( cycl_wasted_cnt   ),
+    .nlynx_overflow_o   ( nlynx_overflow    ),
+    .nlynx_eop_o        ( nlynx_eop         )
   );
+  
+  // Processing system instance
+  datalynx_wrapper datalynx_wrapper_i (
+    .DDR_addr(DDR_addr),
+    .DDR_ba(DDR_ba),
+    .DDR_cas_n(DDR_cas_n),
+    .DDR_ck_n(DDR_ck_n),
+    .DDR_ck_p(DDR_ck_p),
+    .DDR_cke(DDR_cke),
+    .DDR_cs_n(DDR_cs_n),
+    .DDR_dm(DDR_dm),
+    .DDR_dq(DDR_dq),
+    .DDR_dqs_n(DDR_dqs_n),
+    .DDR_dqs_p(DDR_dqs_p),
+    .DDR_odt(DDR_odt),
+    .DDR_ras_n(DDR_ras_n),
+    .DDR_reset_n(DDR_reset_n),
+    .DDR_we_n(DDR_we_n),
+    .FIXED_IO_ddr_vrn(FIXED_IO_ddr_vrn),
+    .FIXED_IO_ddr_vrp(FIXED_IO_ddr_vrp),
+    .FIXED_IO_mio(FIXED_IO_mio),
+    .FIXED_IO_ps_clk(FIXED_IO_ps_clk),
+    .FIXED_IO_ps_porb(FIXED_IO_ps_porb),
+    .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
+    .eop_i                ( nlynx_eop         ),
+    .overflow_i           ( nlynx_overflow    ),
+    .instr_cnt_i          ( instr_cnt ),
+    .load_cnt_i           ( load_cnt ),
+    .store_cnt_i          ( store_cnt ),
+    .alu_cnt_i            ( alu_cnt ),
+    .mult_cnt_i           ( mult_cnt ),
+    .branch_cnt_i         ( branch_cnt ),
+    .branch_taken_cnt_i   ( branch_taken_cnt ),
+    .fpu_cnt_i            ( fpu_cnt ),
+    .jump_cnt_i           ( jump_cnt ),
+    .hwl_init_cnt_i       ( hwl_init_cnt ),
+    .hwl_jump_cnt_i       ( hwl_jump_cnt),
+    .inst_fetch_cnt_i     ( inst_fetch_cnt),
+    .cycl_wasted_cnt_i    ( cycl_wasted_cnt)
+
+  );
+
+
 
 endmodule

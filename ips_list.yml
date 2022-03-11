@@ -19,7 +19,7 @@
 #
 
 pulp_soc:
-  commit: master_v6.0
+  commit: master_v6.0-bscane
   server: https://github.com
   group:  stefanct
 

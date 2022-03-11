@@ -1,0 +1,6 @@
+the_ROM_image:
+{
+	[bootloader]./sd_image/fsbl.elf
+	./sd_image/pulpissimo-zedboard.bit
+	./sd_image/u-boot.elf
+}

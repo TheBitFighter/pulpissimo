@@ -30,6 +30,15 @@ set FPGA_IPS ips
 remove_files $IPS/pulp_soc/rtl/components/axi_slice_dc_slave_wrap.sv
 remove_file $IPS/pulp_soc/rtl/components/axi_slice_dc_master_wrap.sv
 remove_file $IPS/tech_cells_generic/pad_functional_xilinx.sv
+# from datalynx modification
+remove_file $IPS/riscv/rtl/riscv_cs_registers.sv
+remove_file $IPS/riscv/rtl/riscv_core.sv
+remove_file $IPS/riscv/rtl/riscv_id_stage.sv
+remove_file $IPS/riscv/rtl/riscv_if_stage.sv
+remove_file $IPS/pulp_soc/rtl/pulp_soc/pulp_soc.sv
+remove_file $IPS/pulp_soc/rtl/fc/fc_subsystem.sv
+remove_file $RTL/pulpissimo/pulpissimo.sv
+remove_file $RTL/pulpissimo/soc_domain.sv
 
 # Set Verilog Defines.
 set DEFINES "FPGA_TARGET_XILINX=1 PULP_FPGA_EMUL=1 AXI4_XCHECK_OFF=1"
@@ -45,6 +54,29 @@ if [info exists ::env(FC_CLK_PERIOD_NS)] {
     set FC_CLK_PERIOD_NS 10.000
 }
 set CLK_HALFPERIOD_NS [expr ${FC_CLK_PERIOD_NS} / 2.0]
+
+# ADD THE DATA COLLECTION PROCESSING SYSTEM
+source tcl/add_ps_evaluator.tcl
+generate_target all [get_files ./pulpissimo-zedboard.srcs/sources_1/bd/datalynx/datalynx.bd]
+create_ip_run [get_files -of_objects [get_fileset sources_1] ./pulpissimo-zedboard.srcs/sources_1/bd/datalynx/datalynx.bd]
+launch_runs -jobs $CPUS datalynx_processing_system7_0_0_synth_1 datalynx_axi_gpio_0_0_synth_1 datalynx_axi_gpio_1_0_synth_1 datalynx_axi_gpio_2_0_synth_1 datalynx_axi_gpio_3_0_synth_1 datalynx_axi_gpio_4_0_synth_1 datalynx_axi_gpio_5_0_synth_1 datalynx_axi_gpio_6_0_synth_1 datalynx_axi_gpio_7_0_synth_1 datalynx_xbar_0_synth_1 datalynx_auto_pc_0_synth_1 datalynx_rst_ps7_0_100M_0_synth_1
+wait_on_run datalynx_processing_system7_0_0_synth_1
+wait_on_run datalynx_axi_gpio_0_0_synth_1
+wait_on_run datalynx_axi_gpio_1_0_synth_1
+wait_on_run datalynx_axi_gpio_2_0_synth_1
+wait_on_run datalynx_axi_gpio_3_0_synth_1
+wait_on_run datalynx_axi_gpio_4_0_synth_1
+wait_on_run datalynx_axi_gpio_5_0_synth_1
+wait_on_run datalynx_axi_gpio_6_0_synth_1
+wait_on_run datalynx_axi_gpio_7_0_synth_1
+wait_on_run datalynx_xbar_0_synth_1
+wait_on_run datalynx_auto_pc_0_synth_1
+wait_on_run datalynx_rst_ps7_0_100M_0_synth_1
+
+# Generate the wrapper for the block design
+make_wrapper -files [get_files ./pulpissimo-zedboard.srcs/sources_1/bd/datalynx/datalynx.bd] -top
+add_files -norecurse ./pulpissimo-zedboard.srcs/sources_1/bd/datalynx/hdl/datalynx_wrapper.v
+update_compile_order -fileset sources_1
 
 # Add toplevel wrapper
 add_files -norecurse $FPGA_RTL/xilinx_pulpissimo.v
@@ -64,6 +96,16 @@ add_files -norecurse $FPGA_RTL/fpga_bootrom.sv
 add_files -norecurse $FPGA_RTL/pad_functional_xilinx.sv
 add_files -norecurse $FPGA_RTL/pulp_clock_gating_xilinx.sv
 
+# add the data gathering components
+add_files -norecurse $FPGA_RTL/xilinx_riscv_cs_registers.sv
+add_files -norecurse $FPGA_RTL/xilinx_riscv_core.sv
+add_files -norecurse $FPGA_RTL/xilinx_riscv_id_stage.sv
+add_files -norecurse $FPGA_RTL/xilinx_riscv_if_stage.sv
+add_files -norecurse $FPGA_RTL/enlynx.sv
+add_files -norecurse $FPGA_RTL/xilinx_pulp_soc.sv
+add_files -norecurse $FPGA_RTL/xilinx_fc_subsystem.sv
+add_files -norecurse $FPGA_RTL/xilinx_pulpissimo.sv
+add_files -norecurse $FPGA_RTL/xilinx_soc_domain.sv
 
 # set pulpissimo as top
 set_property top xilinx_pulpissimo [current_fileset]; #
@@ -75,7 +117,8 @@ update_compile_order -fileset sources_1
 add_files -fileset constrs_1 -norecurse $CONSTRS/$BOARD.xdc
 
 # Elaborate design
-synth_design -rtl -name rtl_1 -sfcu;# sfcu -> run synthesis in single file compilation unit mode
+#synth_design -rtl -name rtl_1 -sfcu;# sfcu -> run synthesis in single file compilation unit mode
+synth_design -name rtl_1 -sfcu;# sfcu -> run synthesis in single file compilation unit mode
 
 # Launch synthesis
 set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs synth_1]
