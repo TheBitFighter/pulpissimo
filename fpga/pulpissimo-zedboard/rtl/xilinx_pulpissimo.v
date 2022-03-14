@@ -104,7 +104,7 @@ module xilinx_pulpissimo (
   // Wires to datalynx
   localparam NLYNX_COUNTER_WIDTH = 32;
   localparam NLYNX_METRICS = 13;
-  localparam NLYNX_SECTION_SIZE = 10;
+  localparam NLYNX_SECTION_SIZE = 16;
 
   wire [NLYNX_COUNTER_WIDTH-1:0] instr_cnt;
   wire [NLYNX_COUNTER_WIDTH-1:0] load_cnt;

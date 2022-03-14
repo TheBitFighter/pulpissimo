@@ -33,7 +33,11 @@ module soc_domain #(
 
     parameter int unsigned N_UART = 1,
     parameter int unsigned N_SPI  = 1,
-    parameter int unsigned N_I2C  = 2
+    parameter int unsigned N_I2C  = 2,
+    
+    parameter NLYNX_METRICS       = 13,
+    parameter NLYNX_COUNTER_WIDTH = 32,
+    parameter NLYNX_SECTION_SIZE  = 10
 
 )(
 
@@ -237,7 +241,12 @@ module soc_domain #(
     input  logic [1:0]                       data_master_b_resp_i,
     input  logic [AXI_ID_OUT_WIDTH-1:0]      data_master_b_id_i,
     input  logic [AXI_USER_WIDTH-1:0]        data_master_b_user_i,
-    output logic [7:0]                       data_master_b_readpointer_o
+    output logic [7:0]                       data_master_b_readpointer_o,
+    
+    // Outputs to datalynx
+    output logic [NLYNX_METRICS-1:0][NLYNX_COUNTER_WIDTH-1:0] nlynx_counters_o,
+    output logic [NLYNX_METRICS-1:0]                          nlynx_overflow_o,
+    output logic                                              nlynx_eop_o
 );
 
 
@@ -266,7 +275,11 @@ module soc_domain #(
       .N_SPI                            ( N_SPI              ),
       .N_I2C                            ( N_I2C              ),
       .ISOLATE_CLUSTER_CDC              ( 1                  ),
-      .USE_ZFINX                        ( 0                  )
+      .USE_ZFINX                        ( 0                  ),
+      // enlynx parameters
+      .NLYNX_METRICS                    ( NLYNX_METRICS      ),
+      .NLYNX_COUNTER_WIDTH              ( NLYNX_COUNTER_WIDTH),
+      .NLYNX_SECTION_SIZE               ( NLYNX_SECTION_SIZE )
     ) pulp_soc_i (
         // Outputs
         .boot_l2_i                   (1'b0),
@@ -435,7 +448,11 @@ module soc_domain #(
         .jtag_tck_i                  (jtag_tck_i),
         .jtag_trst_ni                (jtag_trst_ni),
         .jtag_tms_i                  (jtag_tms_i),
-        .jtag_tdi_i                  (jtag_tdi_i)
+        .jtag_tdi_i                  (jtag_tdi_i),
+
+        .nlynx_counters_o            ( nlynx_counters_o    ),
+        .nlynx_overflow_o            ( nlynx_overflow_o    ),
+        .nlynx_eop_o                 ( nlynx_eop_o         )
      );
 
 endmodule

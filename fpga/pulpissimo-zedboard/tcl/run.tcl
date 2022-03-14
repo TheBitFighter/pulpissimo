@@ -31,14 +31,14 @@ remove_files $IPS/pulp_soc/rtl/components/axi_slice_dc_slave_wrap.sv
 remove_file $IPS/pulp_soc/rtl/components/axi_slice_dc_master_wrap.sv
 remove_file $IPS/tech_cells_generic/pad_functional_xilinx.sv
 # from datalynx modification
-remove_file $IPS/riscv/rtl/riscv_cs_registers.sv
-remove_file $IPS/riscv/rtl/riscv_core.sv
-remove_file $IPS/riscv/rtl/riscv_id_stage.sv
-remove_file $IPS/riscv/rtl/riscv_if_stage.sv
-remove_file $IPS/pulp_soc/rtl/pulp_soc/pulp_soc.sv
-remove_file $IPS/pulp_soc/rtl/fc/fc_subsystem.sv
-remove_file $RTL/pulpissimo/pulpissimo.sv
-remove_file $RTL/pulpissimo/soc_domain.sv
+#remove_file $IPS/riscv/rtl/riscv_cs_registers.sv
+#remove_file $IPS/riscv/rtl/riscv_core.sv
+#remove_file $IPS/riscv/rtl/riscv_id_stage.sv
+#remove_file $IPS/riscv/rtl/riscv_if_stage.sv
+#remove_file $IPS/pulp_soc/rtl/pulp_soc/pulp_soc.sv
+#remove_file $IPS/pulp_soc/rtl/fc/fc_subsystem.sv
+#remove_file $RTL/pulpissimo/pulpissimo.sv
+#remove_file $RTL/pulpissimo/soc_domain.sv
 
 # Set Verilog Defines.
 set DEFINES "FPGA_TARGET_XILINX=1 PULP_FPGA_EMUL=1 AXI4_XCHECK_OFF=1"
@@ -97,15 +97,16 @@ add_files -norecurse $FPGA_RTL/pad_functional_xilinx.sv
 add_files -norecurse $FPGA_RTL/pulp_clock_gating_xilinx.sv
 
 # add the data gathering components
-add_files -norecurse $FPGA_RTL/xilinx_riscv_cs_registers.sv
-add_files -norecurse $FPGA_RTL/xilinx_riscv_core.sv
-add_files -norecurse $FPGA_RTL/xilinx_riscv_id_stage.sv
-add_files -norecurse $FPGA_RTL/xilinx_riscv_if_stage.sv
-add_files -norecurse $FPGA_RTL/enlynx.sv
-add_files -norecurse $FPGA_RTL/xilinx_pulp_soc.sv
-add_files -norecurse $FPGA_RTL/xilinx_fc_subsystem.sv
-add_files -norecurse $FPGA_RTL/xilinx_pulpissimo.sv
-add_files -norecurse $FPGA_RTL/xilinx_soc_domain.sv
+add_files -norecurse $IPS/riscv/rtl/enlynx.sv
+#add_files -norecurse $FPGA_RTL/xilinx_riscv_cs_registers.sv
+#add_files -norecurse $FPGA_RTL/xilinx_riscv_core.sv
+#add_files -norecurse $FPGA_RTL/xilinx_riscv_id_stage.sv
+#add_files -norecurse $FPGA_RTL/xilinx_riscv_if_stage.sv
+#add_files -norecurse $FPGA_RTL/enlynx.sv
+#add_files -norecurse $FPGA_RTL/xilinx_pulp_soc.sv
+#add_files -norecurse $FPGA_RTL/xilinx_fc_subsystem.sv
+#add_files -norecurse $FPGA_RTL/xilinx_pulpissimo.sv
+#add_files -norecurse $FPGA_RTL/xilinx_soc_domain.sv
 
 # set pulpissimo as top
 set_property top xilinx_pulpissimo [current_fileset]; #

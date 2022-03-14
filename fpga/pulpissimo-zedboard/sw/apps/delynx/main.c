@@ -12,7 +12,7 @@
 #include <sys/time.h>
 
 // interval between probing in µs
-static int waitfor = 1000;
+static int waitfor = 10000;
 
 static volatile uint32_t *instr_cnt;
 static volatile uint32_t *load_cnt;
@@ -42,7 +42,7 @@ static const uint32_t axi_gpio_7 = 0x41270000;
 static FILE *output;
 
 void map_gpios (void) {
-	int fd;
+    int fd;
 
     if ((fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
         perror("Error opening /dev/mem\n");
@@ -54,42 +54,42 @@ void map_gpios (void) {
         exit(-1);
     }
 
-    load_cnt = instr_cnt + 8;
+    load_cnt = instr_cnt + 2;
 
     if ((store_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_1)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_1\n");
         exit(-1);
     }
 
-    alu_cnt = store_cnt + 8;
+    alu_cnt = store_cnt + 2;
 
     if ((mult_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_2)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_2\n");
         exit(-1);
     }
 
-    branch_cnt = mult_cnt + 8;
+    branch_cnt = mult_cnt + 2;
 
     if ((branch_taken_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_3)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_3\n");
         exit(-1);
     }
 
-    fpu_cnt = branch_taken_cnt + 8;
+    fpu_cnt = branch_taken_cnt + 2;
 
     if ((jump_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_4)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_4\n");
         exit(-1);
     }
 
-    hwl_init_cnt = jump_cnt + 8;
+    hwl_init_cnt = jump_cnt + 2;
 
     if ((hwl_jump_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_5)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_5\n");
         exit(-1);
     }
 
-    inst_fetch_cnt = hwl_jump_cnt + 8;
+    inst_fetch_cnt = hwl_jump_cnt + 2;
 
     if ((cycl_wasted_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_6)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_6\n");
@@ -101,10 +101,19 @@ void map_gpios (void) {
         exit(-1);
     }
 
-    overflow = instr_cnt + 2;    
+    overflow = eop + 2;    
 
 
 }
+
+uint32_t is_eop () {
+    return *eop & 0x1;
+}
+
+uint32_t read_overflow () {
+    return *overflow & 0x1FFF;
+}
+
 
 int main (int argc, char** argv) {
     printf("Starting delynx\n");
@@ -127,6 +136,11 @@ int main (int argc, char** argv) {
         exit(-1);
     }
 
+    if (is_eop()) {
+        printf("Waiting for next program to run...\n");
+        while (is_eop());
+    }
+
     uint32_t instr_cnt_cur;
     uint32_t load_cnt_cur;
     uint32_t store_cnt_cur;
@@ -146,7 +160,7 @@ int main (int argc, char** argv) {
 
     printf("Starting data gathering...\n");
     // GPIO and file open and ready. Start logging
-    while (!eop) {
+    while (!is_eop()) {
         // save start time
         gettimeofday(&startTime, NULL);
 
@@ -166,7 +180,7 @@ int main (int argc, char** argv) {
         cycl_wasted_cnt_cur = *cycl_wasted_cnt;
 
         // check if eop has not been reached in the meantime
-        if (*eop || *overflow) break;
+        if (is_eop() || read_overflow()) break;
 
         // save to csv file
         fprintf(output, "%u,", instr_cnt_cur);
@@ -218,6 +232,7 @@ int main (int argc, char** argv) {
     fprintf(output, "%u,", hwl_jump_cnt_cur);
     fprintf(output, "%u,", inst_fetch_cnt_cur);
     fprintf(output, "%u\n", cycl_wasted_cnt_cur);
+    fprintf(output, "%u\n", read_overflow());
 
     printf("Closing file...\n");
     // close the file

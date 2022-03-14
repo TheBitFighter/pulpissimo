@@ -13,7 +13,10 @@
 module pulpissimo #(
     parameter CORE_TYPE   = 0, // 0 for RISCY, 1 for IBEX RV32IMC (formerly ZERORISCY), 2 for IBEX RV32EC (formerly MICRORISCY)
     parameter USE_FPU     = 1,
-    parameter USE_HWPE    = 1
+    parameter USE_HWPE    = 1,
+    parameter NLYNX_METRICS = 13,
+    parameter NLYNX_COUNTER_WIDTH = 32,
+    parameter NLYNX_SECTION_SIZE = 10
 ) (
   inout wire pad_spim_sdio0,
   inout wire pad_spim_sdio1,
@@ -62,7 +65,25 @@ module pulpissimo #(
   inout wire pad_jtag_tms,
   inout wire pad_jtag_trst,
 
-  inout wire pad_xtal_in
+  inout wire pad_xtal_in,
+
+
+  // Outputs to datalynx
+  inout wire [31:0] instr_cnt_o,
+  inout wire [31:0] load_cnt_o,
+  inout wire [31:0] store_cnt_o,
+  inout wire [31:0] alu_cnt_o,
+  inout wire [31:0] mult_cnt_o,
+  inout wire [31:0] branch_cnt_o,
+  inout wire [31:0] branch_taken_cnt_o,
+  inout wire [31:0] fpu_cnt_o,
+  inout wire [31:0] jump_cnt_o,
+  inout wire [31:0] hwl_init_cnt_o,
+  inout wire [31:0] hwl_jump_cnt_o,
+  inout wire [31:0] inst_fetch_cnt_o,
+  inout wire [31:0] cycl_wasted_cnt_o,
+  inout wire [12:0] nlynx_overflow_o,
+  inout wire        nlynx_eop_o
 );
 
   localparam AXI_ADDR_WIDTH             = 32;
@@ -79,6 +100,23 @@ module pulpissimo #(
 
   localparam CVP_ADDR_WIDTH             = 32;
   localparam CVP_DATA_WIDTH             = 32;
+
+  logic [NLYNX_METRICS-1:0][NLYNX_COUNTER_WIDTH-1:0] nlynx_counters;
+
+  // enlynx counter fanout
+  assign instr_cnt_o        = nlynx_counters[0];
+  assign load_cnt_o         = nlynx_counters[1];
+  assign store_cnt_o        = nlynx_counters[2];
+  assign alu_cnt_o          = nlynx_counters[3];
+  assign mult_cnt_o         = nlynx_counters[4];
+  assign branch_cnt_o       = nlynx_counters[5];
+  assign branch_taken_cnt_o = nlynx_counters[6];
+  assign fpu_cnt_o          = nlynx_counters[7];
+  assign jump_cnt_o         = nlynx_counters[8];
+  assign hwl_init_cnt_o     = nlynx_counters[9];
+  assign hwl_jump_cnt_o     = nlynx_counters[10];
+  assign inst_fetch_cnt_o   = nlynx_counters[11];
+  assign cycl_wasted_cnt_o  = nlynx_counters[12];
 
   //
   // PAD FRAME TO PAD CONTROL SIGNALS
@@ -727,7 +765,10 @@ module pulpissimo #(
       .NB_CL_CORES        ( 0                          ),
       .N_UART             ( N_UART                     ),
       .N_SPI              ( N_SPI                      ),
-      .N_I2C              ( N_I2C                      )
+      .N_I2C              ( N_I2C                      ),
+      .NLYNX_METRICS      ( NLYNX_METRICS              ),
+      .NLYNX_COUNTER_WIDTH( NLYNX_COUNTER_WIDTH        ),
+      .NLYNX_SECTION_SIZE ( NLYNX_SECTION_SIZE         )
    ) soc_domain_i (
 
         .ref_clk_i                    ( s_ref_clk                        ),
@@ -927,6 +968,10 @@ module pulpissimo #(
         .cluster_boot_addr_o          (                                  ),
         .cluster_test_en_o            (                                  ),
         .cluster_dbg_irq_valid_o      (                                  ), // we dont' have a cluster
+
+        .nlynx_counters_o             ( nlynx_counters                   ),
+        .nlynx_overflow_o             ( nlynx_overflow_o                 ),
+        .nlynx_eop_o                  ( nlynx_eop_o                      ),
         .*
     );
 

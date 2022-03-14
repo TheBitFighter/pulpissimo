@@ -49,42 +49,42 @@ void map_gpios (void) {
         exit(-1);
     }
 
-    load_cnt = instr_cnt + 8;
+    load_cnt = instr_cnt + 2;
 
     if ((store_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_1)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_1\n");
         exit(-1);
     }
 
-    alu_cnt = store_cnt + 8;
+    alu_cnt = store_cnt + 2;
 
     if ((mult_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_2)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_2\n");
         exit(-1);
     }
 
-    branch_cnt = mult_cnt + 8;
+    branch_cnt = mult_cnt + 2;
 
     if ((branch_taken_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_3)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_3\n");
         exit(-1);
     }
 
-    fpu_cnt = branch_taken_cnt + 8;
+    fpu_cnt = branch_taken_cnt + 2;
 
     if ((jump_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_4)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_4\n");
         exit(-1);
     }
 
-    hwl_init_cnt = jump_cnt + 8;
+    hwl_init_cnt = jump_cnt + 2;
 
     if ((hwl_jump_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_5)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_5\n");
         exit(-1);
     }
 
-    inst_fetch_cnt = hwl_jump_cnt + 8;
+    inst_fetch_cnt = hwl_jump_cnt + 2;
 
     if ((cycl_wasted_cnt = mmap(0, getpagesize(), PROT_READ, MAP_SHARED, fd, axi_gpio_6)) == MAP_FAILED) {
         perror("Error mapping axi_gpio_6\n");
@@ -96,7 +96,7 @@ void map_gpios (void) {
         exit(-1);
     }
 
-    overflow = instr_cnt + 2;    
+    overflow = eop + 2;    
 
 
 }
@@ -107,6 +107,11 @@ int main (int argc, char** argv) {
     printf("Mapping GPIO units\n");
     // Map the GPIOs
     map_gpios();
+
+    uint16_t overflow_masked = *overflow;
+    overflow_masked = 0x1FFF & overflow_masked;
+    uint8_t eop_masked = *eop;
+    eop_masked = 0x1 & eop_masked;
 
     printf("Gathering data...\n");
     printf("instr_cnt: %u\n", *instr_cnt);
@@ -122,8 +127,8 @@ int main (int argc, char** argv) {
     printf("hwl_jump_cnt: %u\n", *hwl_jump_cnt);
     printf("inst_fetch_cnt: %u\n", *inst_fetch_cnt);
     printf("cycl_wasted_cnt: %u\n", *cycl_wasted_cnt);
-    printf("eop: %u\n", *eop);
-    printf("overflow: %u\n", *overflow);
+    printf("eop: %u\n", eop_masked);
+    printf("overflow: %u\n", overflow_masked);
 
     return(0);
 }
