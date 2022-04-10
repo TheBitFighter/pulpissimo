@@ -1,6 +1,9 @@
 # PULPissimo on the ZedBoard
 [\[Documentation\]](http://zedboard.org/product/zedboard)
 
+## Patching IPs
+Call the `patch_ips.sh` script from this folder after calling the `update-ips` script in the root folder of the repository. It will apply the changes containing Datalynx to your Pulpissimo. Do not do this if you intent to build for other FPGA platforns than Zedboard!
+
 ## Bitstream Generation
 In the `fpga` folder, run
 ```Shell

@@ -12,6 +12,7 @@ cp xilinx_riscv_core.sv $IPS/riscv/rtl/riscv_core.sv
 cp xilinx_riscv_cs_registers.sv $IPS/riscv/rtl/riscv_cs_registers.sv
 cp xilinx_riscv_id_stage.sv $IPS/riscv/rtl/riscv_id_stage.sv
 cp xilinx_riscv_if_stage.sv $IPS/riscv/rtl/riscv_if_stage.sv
+cp enlynx.sv $IPS/riscv/rtl/enlynx.sv
 cp xilinx_soc_domain.sv $PULPISSIMO/soc_domain.sv
 
 echo "Successfully patched IPs"
